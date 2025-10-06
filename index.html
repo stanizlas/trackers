@@ -1,8 +1,607 @@
 <!DOCTYPE html>
-<html>
-<head><title>Test</title></head>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Schedule Tracker</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 10px; }
+    .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    h1 { color: #667eea; font-size: 24px; margin-bottom: 10px; }
+    .badge { display: inline-block; background: #10b981; color: white; padding: 4px 12px; border-radius: 20px; font-size: 11px; margin-left: 10px; }
+    .badge-warning { background: #f59e0b; }
+    .btn { padding: 10px 15px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; margin: 5px; }
+    .btn-success { background: #10b981; }
+    .btn-secondary { background: #6b7280; }
+    .btn-danger { background: #ef4444; }
+    .btn-warning { background: #f59e0b; }
+    .btn-small { padding: 6px 12px; font-size: 12px; }
+    .days { display: flex; overflow-x: auto; gap: 8px; margin-bottom: 15px; }
+    .day-btn { padding: 10px 15px; background: #e5e7eb; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; white-space: nowrap; }
+    .day-btn.active { background: #667eea; color: white; }
+    .day-btn.leave { background: #fef3c7; border: 2px solid #f59e0b; }
+    .task { border: 2px solid #e5e7eb; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+    .task.spiritual { background: #faf5ff; border-color: #c084fc; }
+    .task.study { background: #eff6ff; border-color: #60a5fa; }
+    .task.work { background: #f9fafb; border-color: #9ca3af; }
+    .task.fitness { background: #f0fdf4; border-color: #34d399; }
+    .task.meal { background: #fff7ed; border-color: #fb923c; }
+    .task.hygiene { background: #fef3c7; border-color: #fbbf24; }
+    .task.driving { background: #fef9c3; border-color: #eab308; }
+    .task.chores { background: #e0e7ff; border-color: #818cf8; }
+    .task.reading { background: #f0fdfa; border-color: #5eead4; }
+    .task.completed { opacity: 0.5; }
+    .task-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .task-time { font-size: 12px; color: #6b7280; font-weight: 600; }
+    .task-name { font-weight: 600; margin: 4px 0; }
+    .checkbox { width: 28px; height: 28px; border: 2px solid #d1d5db; border-radius: 50%; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .checkbox.checked { background: #10b981; border-color: #10b981; color: white; }
+    .note-box { margin-top: 8px; padding: 8px; background: #fef3c7; border: 1px solid #fbbf24; border-radius: 6px; cursor: pointer; }
+    .note-box:active { background: #fde68a; }
+    .note-text { font-size: 12px; color: #78350f; }
+    .note-text.empty { font-style: italic; color: #92400e; }
+    .detail-area { margin-top: 10px; padding: 10px; background: white; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; min-height: 60px; }
+    .detail-area:active { background: #f3f4f6; }
+    .detail-text { font-size: 14px; color: #1f2937; white-space: pre-wrap; }
+    .detail-text.empty { color: #9ca3af; font-style: italic; }
+    .work-block { background: #f9fafb; padding: 8px; margin-bottom: 6px; border-radius: 4px; border-left: 3px solid #667eea; cursor: pointer; }
+    .work-block:active { background: #e5e7eb; }
+    .work-time { font-size: 11px; font-weight: 600; color: #6b7280; }
+    .task-controls { margin-top: 10px; padding-top: 10px; border-top: 1px solid #e5e7eb; display: flex; gap: 6px; flex-wrap: wrap; }
+    .time-input { margin-top: 8px; padding: 8px; background: #dbeafe; border: 1px solid #60a5fa; border-radius: 6px; }
+    .time-input input { width: 80px; padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 14px; }
+    .time-input label { font-size: 12px; font-weight: 600; color: #1e40af; margin-right: 8px; }
+    .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; }
+    .modal.show { display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .modal-content { background: white; border-radius: 12px; padding: 20px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+    .modal-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; }
+    .modal-input { width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 16px; font-family: inherit; margin-bottom: 10px; }
+    .modal-textarea { width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 16px; font-family: inherit; min-height: 100px; margin-bottom: 15px; }
+    .modal-buttons { display: flex; gap: 10px; }
+    .modal-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; }
+    .btn-cancel { background: #e5e7eb; color: #333; }
+    .btn-save { background: #667eea; color: white; }
+  </style>
+</head>
 <body>
-<h1>Hello World</h1>
-<p>If you see this, GitHub Pages works!</p>
+  <div id="app"></div>
+  
+  <div id="textModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-title" id="textModalTitle">Enter Details</div>
+      <textarea id="textModalInput" class="modal-textarea"></textarea>
+      <div class="modal-buttons">
+        <button class="modal-btn btn-cancel" onclick="closeTextModal()">Cancel</button>
+        <button class="modal-btn btn-save" onclick="saveTextModal()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="editTaskModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-title">Edit Task</div>
+      <input id="editTaskTime" class="modal-input" placeholder="Time (e.g., 2:00-3:00 PM)">
+      <input id="editTaskName" class="modal-input" placeholder="Task name">
+      <select id="editTaskCategory" class="modal-input">
+        <option value="study">Study</option>
+        <option value="work">Work</option>
+        <option value="fitness">Fitness</option>
+        <option value="spiritual">Spiritual</option>
+        <option value="meal">Meal</option>
+        <option value="hygiene">Hygiene</option>
+        <option value="driving">Driving</option>
+        <option value="chores">Chores</option>
+        <option value="reading">Reading</option>
+      </select>
+      <input id="editTaskDuration" type="number" class="modal-input" placeholder="Duration (minutes)">
+      <div class="modal-buttons">
+        <button class="modal-btn btn-cancel" onclick="closeEditTask()">Cancel</button>
+        <button class="modal-btn btn-save" onclick="saveEditTask()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="addTaskModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-title">Add New Task</div>
+      <input id="taskTime" class="modal-input" placeholder="Time (e.g., 2:00-3:00 PM)">
+      <input id="taskName" class="modal-input" placeholder="Task name">
+      <select id="taskCategory" class="modal-input">
+        <option value="study">Study</option>
+        <option value="work">Work</option>
+        <option value="fitness">Fitness</option>
+        <option value="spiritual">Spiritual</option>
+        <option value="meal">Meal</option>
+        <option value="hygiene">Hygiene</option>
+        <option value="driving">Driving</option>
+        <option value="chores">Chores</option>
+        <option value="reading">Reading</option>
+      </select>
+      <input id="taskDuration" type="number" class="modal-input" placeholder="Duration (minutes)">
+      <div class="modal-buttons">
+        <button class="modal-btn btn-cancel" onclick="closeAddTask()">Cancel</button>
+        <button class="modal-btn btn-save" onclick="saveNewTask()">Add Task</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const DEFAULT_SCHEDULE = {
+      Monday: [
+        { time: '5:30-6:30 AM', task: 'Wake up, hygiene, Bible & prayer', category: 'spiritual', duration: 60, id: 'm1' },
+        { time: '6:30-9:30 AM', task: 'CFA Level 3 study', category: 'study', duration: 180, id: 'm2', removable: true },
+        { time: '9:30-5:30 PM', task: 'Work (with Meal 1 at 10:30)', category: 'work', duration: 480, id: 'm3' },
+        { time: '6:00-6:30 PM', task: 'Meal 2', category: 'meal', duration: 30, id: 'm4' },
+        { time: '6:30-7:30 PM', task: 'Gym', category: 'fitness', duration: 60, id: 'm5' },
+        { time: '7:30-8:00 PM', task: 'Shower', category: 'hygiene', duration: 30, id: 'm6' },
+        { time: '8:00-9:30 PM', task: 'FP&A learning', category: 'study', duration: 90, id: 'm7', removable: true },
+        { time: '10:00-11:00 PM', task: 'Drive to Raglan (podcast)', category: 'driving', duration: 60, id: 'm8' },
+        { time: '11:30-11:40 PM', task: 'Book reading', category: 'reading', duration: 10, id: 'm9' }
+      ],
+      Tuesday: [
+        { time: '7:10-7:55 AM', task: 'Wake up, home workout', category: 'fitness', duration: 45, id: 't1' },
+        { time: '7:55-8:40 AM', task: 'Shower, hygiene', category: 'hygiene', duration: 45, id: 't2' },
+        { time: '8:40-9:40 AM', task: 'Bible & prayer', category: 'spiritual', duration: 60, id: 't3' },
+        { time: '9:40-5:30 PM', task: 'Work (with Meal 1 at 10:30)', category: 'work', duration: 470, id: 't4' },
+        { time: '6:00-6:30 PM', task: 'Meal 2', category: 'meal', duration: 30, id: 't5' },
+        { time: '6:30-8:30 PM', task: 'Law exam prep', category: 'study', duration: 120, id: 't6', removable: true },
+        { time: '8:30-10:00 PM', task: 'Grocery shopping', category: 'chores', duration: 90, id: 't7' },
+        { time: '10:30-10:40 PM', task: 'Book reading', category: 'reading', duration: 10, id: 't8' }
+      ],
+      Wednesday: [
+        { time: '6:10-6:55 AM', task: 'Wake up, home workout', category: 'fitness', duration: 45, id: 'w1' },
+        { time: '6:55-7:40 AM', task: 'Shower, hygiene', category: 'hygiene', duration: 45, id: 'w2' },
+        { time: '7:40-8:40 AM', task: 'Bible & prayer', category: 'spiritual', duration: 60, id: 'w3' },
+        { time: '9:30-5:30 PM', task: 'Work (with Meal 1 at 10:30)', category: 'work', duration: 480, id: 'w4' },
+        { time: '6:00-6:30 PM', task: 'Meal 2', category: 'meal', duration: 30, id: 'w5' },
+        { time: '6:30-8:30 PM', task: 'FP&A learning', category: 'study', duration: 120, id: 'w6', removable: true },
+        { time: '8:30-11:00 PM', task: 'CFA Level 3 study', category: 'study', duration: 150, id: 'w7', removable: true },
+        { time: '11:00-11:10 PM', task: 'Book reading', category: 'reading', duration: 10, id: 'w8' }
+      ],
+      Thursday: [
+        { time: '6:40-7:05 AM', task: 'Wake up, home workout', category: 'fitness', duration: 25, id: 'th1' },
+        { time: '7:05-7:50 AM', task: 'Shower, hygiene', category: 'hygiene', duration: 45, id: 'th2' },
+        { time: '7:50-8:50 AM', task: 'Bible & prayer', category: 'spiritual', duration: 60, id: 'th3' },
+        { time: '9:30-5:30 PM', task: 'Work (with Meal 1 at 10:30)', category: 'work', duration: 480, id: 'th4' },
+        { time: '6:00-6:30 PM', task: 'Meal 2', category: 'meal', duration: 30, id: 'th5' },
+        { time: '6:30-8:30 PM', task: 'FP&A learning', category: 'study', duration: 120, id: 'th6', removable: true },
+        { time: '8:30-11:00 PM', task: 'CFA Level 3 study', category: 'study', duration: 150, id: 'th7', removable: true },
+        { time: '11:00-11:10 PM', task: 'Book reading', category: 'reading', duration: 10, id: 'th8' }
+      ],
+      Friday: [
+        { time: '6:40-7:05 AM', task: 'Wake up, home workout', category: 'fitness', duration: 25, id: 'f1' },
+        { time: '7:05-7:50 AM', task: 'Shower, hygiene', category: 'hygiene', duration: 45, id: 'f2' },
+        { time: '7:50-8:50 AM', task: 'Bible & prayer', category: 'spiritual', duration: 60, id: 'f3' },
+        { time: '9:30-5:30 PM', task: 'Work (with Meal 1 at 10:30)', category: 'work', duration: 480, id: 'f4' },
+        { time: '5:30-6:30 PM', task: 'Drive to Birmingham (podcast)', category: 'driving', duration: 60, id: 'f5' },
+        { time: '7:00-7:30 PM', task: 'Meal 2', category: 'meal', duration: 30, id: 'f6' },
+        { time: '9:00-10:30 PM', task: 'Gym', category: 'fitness', duration: 90, id: 'f7' },
+        { time: '10:30-11:00 PM', task: 'Shower', category: 'hygiene', duration: 30, id: 'f8' },
+        { time: '11:00-11:10 PM', task: 'Book reading', category: 'reading', duration: 10, id: 'f9' }
+      ],
+      Saturday: [
+        { time: '6:40-7:40 AM', task: 'Wake up, hygiene, Bible & prayer', category: 'spiritual', duration: 60, id: 's1' },
+        { time: '7:40-10:00 AM', task: 'Law (2hr) + FP&A (20min)', category: 'study', duration: 140, id: 's2', removable: true },
+        { time: '10:30-11:00 AM', task: 'Meal 1', category: 'meal', duration: 30, id: 's3' },
+        { time: '11:00-1:00 PM', task: 'Law exam prep', category: 'study', duration: 120, id: 's4', removable: true },
+        { time: '2:30-5:30 PM', task: 'CFA Level 3 study', category: 'study', duration: 180, id: 's5', removable: true },
+        { time: '6:00-6:30 PM', task: 'Meal 2', category: 'meal', duration: 30, id: 's6' },
+        { time: '7:00-8:30 PM', task: 'Gym', category: 'fitness', duration: 90, id: 's7' },
+        { time: '8:30-9:00 PM', task: 'Shower', category: 'hygiene', duration: 30, id: 's8' },
+        { time: '10:30-10:40 PM', task: 'Book reading', category: 'reading', duration: 10, id: 's9' }
+      ],
+      Sunday: [
+        { time: '6:10-7:10 AM', task: 'Wake up, hygiene, Bible & prayer', category: 'spiritual', duration: 60, id: 'su1' },
+        { time: '7:10-8:20 AM', task: 'FP&A learning', category: 'study', duration: 70, id: 'su2', removable: true },
+        { time: '10:30-11:00 AM', task: 'Meal 1', category: 'meal', duration: 30, id: 'su3' },
+        { time: '11:00 AM-12:00 PM', task: 'Gym', category: 'fitness', duration: 60, id: 'su4' },
+        { time: '12:00-12:30 PM', task: 'Shower', category: 'hygiene', duration: 30, id: 'su5' },
+        { time: '12:30-2:00 PM', task: 'Law exam prep', category: 'study', duration: 90, id: 'su6', removable: true },
+        { time: '3:30-7:00 PM', task: 'Church', category: 'spiritual', duration: 210, id: 'su7' },
+        { time: '7:00-7:30 PM', task: 'Meal 2', category: 'meal', duration: 30, id: 'su8' },
+        { time: '7:30-10:30 PM', task: 'FP&A learning', category: 'study', duration: 180, id: 'su9', removable: true },
+        { time: '10:30-10:40 PM', task: 'Book reading', category: 'reading', duration: 10, id: 'su10' }
+      ]
+    };
+
+    const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const WORK_BLOCKS = ['9:30-10:00 AM', '10:00-10:30 AM', '11:00-11:30 AM', '11:30 AM-12:00 PM', '12:00-12:30 PM', '12:30-1:00 PM', '1:00-1:30 PM', '1:30-2:00 PM', '2:00-2:30 PM', '2:30-3:00 PM', '3:00-3:30 PM', '3:30-4:00 PM', '4:00-4:30 PM', '4:30-5:00 PM', '5:00-5:30 PM'];
+
+    let state = {
+      week: (() => {
+        const saved = localStorage.getItem('currentWeek');
+        if (saved) return parseInt(saved);
+        const startDate = new Date(2025, 0, 6);
+        const today = new Date();
+        const diffDays = Math.ceil(Math.abs(today - startDate) / (1000 * 60 * 60 * 24));
+        return Math.ceil(diffDays / 7);
+      })(),
+      day: 'Monday',
+      schedule: (() => {
+        const saved = localStorage.getItem('customSchedule');
+        return saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_SCHEDULE));
+      })(),
+      tasks: JSON.parse(localStorage.getItem('tasks') || '{}'),
+      logs: JSON.parse(localStorage.getItem('logs') || '{}'),
+      notes: JSON.parse(localStorage.getItem('taskNotes') || '{}'),
+      studyTime: JSON.parse(localStorage.getItem('studyTime') || '{}'),
+      leaveDays: JSON.parse(localStorage.getItem('leaveDays') || '{}'),
+      backups: JSON.parse(localStorage.getItem('weekBackups') || '{}'),
+      editMode: false,
+      modalCallback: null,
+      editingTaskId: null
+    };
+
+    function save() {
+      localStorage.setItem('currentWeek', state.week);
+      localStorage.setItem('customSchedule', JSON.stringify(state.schedule));
+      localStorage.setItem('tasks', JSON.stringify(state.tasks));
+      localStorage.setItem('logs', JSON.stringify(state.logs));
+      localStorage.setItem('taskNotes', JSON.stringify(state.notes));
+      localStorage.setItem('studyTime', JSON.stringify(state.studyTime));
+      localStorage.setItem('leaveDays', JSON.stringify(state.leaveDays));
+      localStorage.setItem('weekBackups', JSON.stringify(state.backups));
+    }
+
+    function createBackup() {
+      const backupKey = `${state.week}-${Date.now()}`;
+      state.backups[backupKey] = {
+        week: state.week,
+        timestamp: new Date().toISOString(),
+        tasks: JSON.parse(JSON.stringify(state.tasks)),
+        logs: JSON.parse(JSON.stringify(state.logs)),
+        notes: JSON.parse(JSON.stringify(state.notes)),
+        studyTime: JSON.parse(JSON.stringify(state.studyTime)),
+        leaveDays: JSON.parse(JSON.stringify(state.leaveDays))
+      };
+      save();
+      return backupKey;
+    }
+
+    function restoreBackup(backupKey) {
+      const backup = state.backups[backupKey];
+      if (backup) {
+        state.tasks = JSON.parse(JSON.stringify(backup.tasks));
+        state.logs = JSON.parse(JSON.stringify(backup.logs));
+        state.notes = JSON.parse(JSON.stringify(backup.notes));
+        state.studyTime = JSON.parse(JSON.stringify(backup.studyTime));
+        state.leaveDays = JSON.parse(JSON.stringify(backup.leaveDays));
+        save();
+        render();
+      }
+    }
+
+    function getWeekDates() {
+      const startDate = new Date(2025, 0, 6);
+      const weekStart = new Date(startDate);
+      weekStart.setDate(startDate.getDate() + (state.week - 1) * 7);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return { start: `${months[weekStart.getMonth()]} ${weekStart.getDate()}`, end: `${months[weekEnd.getMonth()]} ${weekEnd.getDate()}` };
+    }
+
+    function getDayDate(dayName) {
+      const dayIndex = DAYS.indexOf(dayName);
+      const startDate = new Date(2025, 0, 6);
+      const weekStart = new Date(startDate);
+      weekStart.setDate(startDate.getDate() + (state.week - 1) * 7);
+      const dayDate = new Date(weekStart);
+      dayDate.setDate(weekStart.getDate() + dayIndex);
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return `${months[dayDate.getMonth()]} ${dayDate.getDate()}`;
+    }
+
+    function toggle(day, taskId) {
+      const key = `${state.week}-${day}-${taskId}`;
+      state.tasks[key] = !state.tasks[key];
+      save();
+      render();
+    }
+
+    function toggleLeaveDay(day) {
+      const key = `${state.week}-${day}`;
+      state.leaveDays[key] = !state.leaveDays[key];
+      save();
+      render();
+    }
+
+    function openTextModal(title, current, callback) {
+      document.getElementById('textModalTitle').textContent = title;
+      document.getElementById('textModalInput').value = current || '';
+      document.getElementById('textModal').classList.add('show');
+      state.modalCallback = callback;
+    }
+
+    function closeTextModal() {
+      document.getElementById('textModal').classList.remove('show');
+      state.modalCallback = null;
+    }
+
+    function saveTextModal() {
+      const value = document.getElementById('textModalInput').value;
+      if (state.modalCallback) state.modalCallback(value);
+      closeTextModal();
+      render();
+    }
+
+    function editNote(day, taskId) {
+      const key = `${state.week}-${day}-${taskId}-note`;
+      openTextModal('Task Note', state.notes[key] || '', (val) => {
+        state.notes[key] = val;
+        save();
+      });
+    }
+
+    function editLog(day, taskId, type, label) {
+      const key = `${state.week}-${day}-${taskId}-${type}`;
+      openTextModal(label, state.logs[key] || '', (val) => {
+        state.logs[key] = val;
+        save();
+      });
+    }
+
+    function saveStudyTime(day, taskId, hours) {
+      const key = `${state.week}-${day}-${taskId}`;
+      state.studyTime[key] = hours;
+      save();
+    }
+
+    function getStudyTime(day, taskId) {
+      const key = `${state.week}-${day}-${taskId}`;
+      return state.studyTime[key] || '';
+    }
+
+    function openEditTask(day, taskId) {
+      const task = state.schedule[day].find(t => t.id === taskId);
+      if (!task) return;
+      
+      document.getElementById('editTaskTime').value = task.time;
+      document.getElementById('editTaskName').value = task.task;
+      document.getElementById('editTaskCategory').value = task.category;
+      document.getElementById('editTaskDuration').value = task.duration;
+      document.getElementById('editTaskModal').classList.add('show');
+      
+      state.editingTaskId = { day, taskId };
+    }
+
+    function closeEditTask() {
+      document.getElementById('editTaskModal').classList.remove('show');
+      state.editingTaskId = null;
+    }
+
+    function saveEditTask() {
+      if (!state.editingTaskId) return;
+      
+      const { day, taskId } = state.editingTaskId;
+      const task = state.schedule[day].find(t => t.id === taskId);
+      if (!task) return;
+      
+      task.time = document.getElementById('editTaskTime').value;
+      task.task = document.getElementById('editTaskName').value;
+      task.category = document.getElementById('editTaskCategory').value;
+      task.duration = parseInt(document.getElementById('editTaskDuration').value);
+      
+      save();
+      closeEditTask();
+      render();
+    }
+
+    function toggleEdit() {
+      state.editMode = !state.editMode;
+      render();
+    }
+
+    function moveTask(day, taskId, dir) {
+      const tasks = state.schedule[day];
+      const idx = tasks.findIndex(t => t.id === taskId);
+      if (idx === -1) return;
+      const newIdx = dir === 'up' ? idx - 1 : idx + 1;
+      if (newIdx < 0 || newIdx >= tasks.length) return;
+      [tasks[idx], tasks[newIdx]] = [tasks[newIdx], tasks[idx]];
+      save();
+      render();
+    }
+
+    function removeTask(day, taskId) {
+      if (confirm('Remove this task?')) {
+        state.schedule[day] = state.schedule[day].filter(t => t.id !== taskId);
+        save();
+        render();
+      }
+    }
+
+    function openAddTask() {
+      document.getElementById('taskTime').value = '';
+      document.getElementById('taskName').value = '';
+      document.getElementById('taskDuration').value = '';
+      document.getElementById('addTaskModal').classList.add('show');
+    }
+
+    function closeAddTask() {
+      document.getElementById('addTaskModal').classList.remove('show');
+    }
+
+    function saveNewTask() {
+      const time = document.getElementById('taskTime').value;
+      const task = document.getElementById('taskName').value;
+      const category = document.getElementById('taskCategory').value;
+      const duration = parseInt(document.getElementById('taskDuration').value);
+      
+      if (!time || !task || !duration) {
+        alert('Please fill all fields');
+        return;
+      }
+
+      state.schedule[state.day].push({
+        time, task, category, duration,
+        id: `custom-${Date.now()}`,
+        removable: true
+      });
+      
+      save();
+      closeAddTask();
+      render();
+    }
+
+    function exportPDF() {
+      const dates = getWeekDates();
+      let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Week ${state.week}</title><style>body{font-family:Arial;padding:20px}h1{color:#667eea}h2{margin-top:20px}.task{margin:10px 0;padding:10px;border-left:4px solid #667eea;background:#f9f9f9}.completed{opacity:0.6}</style></head><body><h1>Week ${state.week}: ${dates.start} - ${dates.end}</h1>`;
+      
+      DAYS.forEach(day => {
+        html += `<h2>${day}</h2>`;
+        (state.schedule[day] || []).forEach(task => {
+          const key = `${state.week}-${day}-${task.id}`;
+          const done = state.tasks[key];
+          const studyHrs = state.studyTime[key];
+          html += `<div class="task ${done ? 'completed' : ''}"><strong>${task.time}</strong> - ${task.task}`;
+          if (studyHrs) html += ` <em>(Studied: ${studyHrs}hrs)</em>`;
+          html += `</div>`;
+        });
+      });
+      
+      html += `</body></html>`;
+      const win = window.open('', '_blank');
+      win.document.write(html);
+      win.document.close();
+      setTimeout(() => win.print(), 500);
+    }
+
+    function resetWeek() {
+      if (confirm('Reset all tasks for this week? (A backup will be created)')) {
+        const backupKey = createBackup();
+        const prefix = state.week + '-';
+        Object.keys(state.tasks).forEach(k => { if (k.startsWith(prefix)) delete state.tasks[k]; });
+        Object.keys(state.logs).forEach(k => { if (k.startsWith(prefix)) delete state.logs[k]; });
+        Object.keys(state.notes).forEach(k => { if (k.startsWith(prefix)) delete state.notes[k]; });
+        Object.keys(state.studyTime).forEach(k => { if (k.startsWith(prefix)) delete state.studyTime[k]; });
+        Object.keys(state.leaveDays).forEach(k => { if (k.startsWith(prefix)) delete state.leaveDays[k]; });
+        save();
+        alert(`Week reset! Backup saved.`);
+        render();
+      }
+    }
+
+    function showBackups() {
+      const weekBackups = Object.entries(state.backups)
+        .filter(([key, backup]) => backup.week === state.week)
+        .sort((a, b) => new Date(b[1].timestamp) - new Date(a[1].timestamp));
+      
+      if (weekBackups.length === 0) {
+        alert('No backups found for this week');
+        return;
+      }
+      
+      let msg = 'Available backups for this week:\n\n';
+      weekBackups.forEach(([key, backup], idx) => {
+        const date = new Date(backup.timestamp);
+        msg += `${idx + 1}. ${date.toLocaleString()}\n`;
+      });
+      msg += '\nEnter number to restore (or cancel):';
+      
+      const choice = prompt(msg);
+      if (choice) {
+        const idx = parseInt(choice) - 1;
+        if (idx >= 0 && idx < weekBackups.length) {
+          const [key] = weekBackups[idx];
+          restoreBackup(key);
+          alert('Backup restored!');
+        }
+      }
+    }
+
+    function render() {
+      const dates = getWeekDates();
+      const dayTasks = state.schedule[state.day] || [];
+      const isDayOnLeave = state.leaveDays[`${state.week}-${state.day}`];
+      
+      let html = `<div class="card">
+        <h1>Week ${state.week}: ${dates.start} - ${dates.end} <span class="badge">CURRENT</span></h1>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+          <button class="btn" onclick="toggleEdit()">${state.editMode ? 'Done Editing' : 'Edit Schedule'}</button>
+          <button class="btn btn-success" onclick="openAddTask()">+ Add Task</button>
+          <button class="btn btn-success" onclick="exportPDF()">PDF</button>
+          <button class="btn btn-warning" onclick="showBackups()">Restore Backup</button>
+          <button class="btn btn-danger" onclick="resetWeek()">Reset Week</button>
+        </div>
+        <div class="days" style="margin-top:15px">
+          ${DAYS.map(d => {
+            const isLeave = state.leaveDays[`${state.week}-${d}`];
+            return `<button class="day-btn ${d === state.day ? 'active' : ''} ${isLeave ? 'leave' : ''}" onclick="state.day='${d}';render()">${d}<br><span style="font-size:10px">${getDayDate(d)}</span></button>`;
+          }).join('')}
+        </div>
+        ${dayTasks.some(t => t.category === 'work') ? `<div style="margin-top:10px"><button class="btn btn-small btn-warning" onclick="toggleLeaveDay('${state.day}')">${isDayOnLeave ? 'Cancel Leave' : 'Mark as Leave Day'}</button></div>` : ''}
+      </div>`;
+
+      dayTasks.forEach((task, idx) => {
+        const key = `${state.week}-${state.day}-${task.id}`;
+        const done = state.tasks[key];
+        const note = state.notes[`${key}-note`];
+        const isWork = task.category === 'work' && !isDayOnLeave;
+        const isStudy = task.category === 'study';
+        const isDetail = ['work', 'study', 'fitness', 'spiritual', 'meal'].includes(task.category);
+        const studyHours = getStudyTime(state.day, task.id);
+
+        html += `<div class="card task ${task.category} ${done ? 'completed' : ''}">
+          <div class="task-header">
+            <div style="flex:1">
+              <div class="task-time">${task.time}</div>
+              <div class="task-name">${task.task}</div>
+              <div style="font-size:11px;color:#9ca3af">${task.duration} mins</div>
+              
+              ${isStudy ? `<div class="time-input">
+                <label>Actual hours studied:</label>
+                <input type="number" step="0.5" min="0" max="24" value="${studyHours}" 
+                  onchange="saveStudyTime('${state.day}', '${task.id}', this.value); render()">
+              </div>` : ''}
+              
+              <div class="note-box" onclick="editNote('${state.day}', '${task.id}')">
+                <div class="note-text ${note ? '' : 'empty'}">${note || 'Tap to add note'}</div>
+              </div>`;
+
+        if (isDetail && !isWork) {
+          const log = state.logs[`${key}-detail`] || '';
+          const placeholder = task.category === 'fitness' ? 'Tap to add exercises...' :
+                            task.category === 'spiritual' ? 'Tap to add Bible/prayer...' :
+                            task.category === 'meal' ? 'Tap to add what you ate...' :
+                            'Tap to add details...';
+          html += `<div class="detail-area" onclick="editLog('${state.day}', '${task.id}', 'detail', '${task.category}')">
+            <div class="detail-text ${log ? '' : 'empty'}">${log || placeholder}</div>
+          </div>`;
+        } else if (isWork) {
+          html += `<div style="margin-top:10px;border-top:1px solid #e5e7eb;padding-top:10px">
+            <div style="font-weight:600;font-size:13px;margin-bottom:8px">Work Log (30-min blocks):</div>`;
+          WORK_BLOCKS.forEach((blk, bi) => {
+            const log = state.logs[`${key}-work-${bi}`] || '';
+            html += `<div class="work-block" onclick="editLog('${state.day}', '${task.id}', 'work-${bi}', '${blk}')">
+              <div class="work-time">${blk}</div>
+              <div class="detail-text ${log ? '' : 'empty'}">${log || 'Tap to add...'}</div>
+            </div>`;
+          });
+          html += `</div>`;
+        }
+
+        if (state.editMode) {
+          html += `<div class="task-controls">`;
+          html += `<button class="btn btn-small" onclick="openEditTask('${state.day}', '${task.id}')">Edit Task</button>`;
+          if (idx > 0) html += `<button class="btn btn-small btn-secondary" onclick="moveTask('${state.day}', '${task.id}', 'up')">Up</button>`;
+          if (idx < dayTasks.length - 1) html += `<button class="btn btn-small btn-secondary" onclick="moveTask('${state.day}', '${task.id}', 'down')">Down</button>`;
+          if (task.removable) html += `<button class="btn btn-small btn-danger" onclick="removeTask('${state.day}', '${task.id}')">Remove</button>`;
+          html += `</div>`;
+        }
+
+        html += `</div>
+            <div class="checkbox ${done ? 'checked' : ''}" onclick="toggle('${state.day}', '${task.id}')">${done ? '✓' : ''}</div>
+          </div>
+        </div>`;
+      });
+
+      document.getElementById('app').innerHTML = html;
+    }
+
+    render();
+  </script>
 </body>
 </html>
